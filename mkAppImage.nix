@@ -59,6 +59,7 @@ runCommand name
     squashfsTools
   ];
 } ''
+  set -x
   if ! test -x ${program}; then
     echo "entrypoint '${program}' is not executable"
     exit 1

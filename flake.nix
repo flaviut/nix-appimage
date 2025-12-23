@@ -15,7 +15,6 @@
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = (import nixpkgs { inherit system; }).pkgsStatic;
-        hostPkgs = import nixpkgs { inherit system; };
       in
       rec {
         # runtimes are an executable that mount the squashfs part of the appimage and start AppRun
@@ -39,11 +38,28 @@
             lib.mkAppImage
               {
                 program = drv.program;
+                          squashfsArgs = pkgs.lib.map pkgs.lib.escapeShellArg [
+              "-wildcards"
+              "-e" "... libGL*.so*"
+              "-e" "... libEGL*.so*"
+              "-e" "... libGLES*.so*"
+              "-e" "... libvulkan*.so*"
+            ];
+
               }
           else if drv.type == "derivation" then
             lib.mkAppImage
               {
                 program = pkgs.lib.getExe drv;
+                # Exclude files which match the wildcard pattern "*.gz" anywhere within DIRECTORY and its sub-directories. The initial "..." indicates the wildcard pattern is "non-anchored" and will match anywhere.
+                          squashfsArgs = pkgs.lib.map pkgs.lib.escapeShellArg [
+              "-wildcards"
+              "-e" "... libGL*.so*"
+              "-e" "... libEGL*.so*"
+              "-e" "... libGLES*.so*"
+              "-e" "... libvulkan*.so*"
+            ];
+
               }
           else builtins.abort "don't know how to build ${drv.type}; only know app and derivation";
 
