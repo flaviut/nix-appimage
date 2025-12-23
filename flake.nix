@@ -40,10 +40,7 @@
                 program = drv.program;
                           squashfsArgs = pkgs.lib.map pkgs.lib.escapeShellArg [
               "-wildcards"
-              "-e" "... libGL*.so*"
-              "-e" "... libEGL*.so*"
-              "-e" "... libGLES*.so*"
-              "-e" "... libvulkan*.so*"
+              "-ef" "${./excludelist}"
             ];
 
               }
@@ -54,10 +51,7 @@
                 # Exclude files which match the wildcard pattern "*.gz" anywhere within DIRECTORY and its sub-directories. The initial "..." indicates the wildcard pattern is "non-anchored" and will match anywhere.
                           squashfsArgs = pkgs.lib.map pkgs.lib.escapeShellArg [
               "-wildcards"
-              "-e" "... libGL*.so*"
-              "-e" "... libEGL*.so*"
-              "-e" "... libGLES*.so*"
-              "-e" "... libvulkan*.so*"
+              "-ef" "${./excludelist}"
             ];
 
               }
