@@ -26,11 +26,17 @@ if [ "${NA_EXE#/}" = "$NA_EXE" ]; then
 	NA_EXE="/bin/$NA_EXE"
 fi
 
-export NA_EXE
-nix bundle --impure --bundler "$(dirname "$0")" \
+NA_ROOT="$(cd "$(dirname "$0")" && pwd)"
+NA_OVERLAY="$NA_ROOT/overlays/system-ld-so-conf.nix"
+
+export NA_EXE NA_OVERLAY
+nix bundle --impure --bundler "$NA_ROOT" \
 	--expr '
 	let
-		p = with import <nixpkgs> {}; '"$1"';
+		pkgs = import <nixpkgs> {
+			overlays = [ (import (builtins.getEnv "NA_OVERLAY")) ];
+		};
+		p = with pkgs; '"$1"';
 	in {
 		type = "app";
 		program = "${p}/${builtins.getEnv "NA_EXE"}";

@@ -30,11 +30,47 @@ DiG 9.18.14
 You can also use nix-appimage as a nix library -- the flake provides `lib.<system>.mkAppImage` which supports more options.
 See mkAppImage.nix for details.
 
+### Loading the host ld.so.conf
+
+Nixpkgs patches glibc so `ld.so.conf` lives under the glibc prefix, which means host search paths in `/etc/ld.so.conf` are ignored. nix-appimage ships an overlay (`overlays.systemLdConf`) that appends an `include /etc/ld.so.conf` line so the bundled loader can fall back to system libraries when something is missing from the closure.
+
+- The `./bundle` helper imports this overlay automatically.
+- When driving `nix bundle` directly, import nixpkgs with the overlay before building your package, for example:
+
+```
+nix bundle --impure --bundler github:ralismark/nix-appimage --expr '
+  let
+    na = builtins.getFlake "github:ralismark/nix-appimage";
+    pkgs = import na.inputs.nixpkgs {
+      system = builtins.currentSystem;
+      overlays = [ na.overlays.systemLdConf ];
+    };
+  in pkgs.hello
+'
+```
+
+To rely on host OpenGL drivers instead of bundling Nix’s, exclude the Mesa libs from the squashfs and let the loader fall back to system libraries. For example, when using the flake API:
+
+```
+let
+  na = builtins.getFlake "github:ralismark/nix-appimage";
+  pkgs = na.inputs.nixpkgs.legacyPackages.${builtins.currentSystem};
+in na.outputs.lib.${builtins.currentSystem}.mkAppImage {
+  program = "${pkgs.somePkg}/bin/app";
+  squashfsArgs = [
+    "-wildcards"
+    "-e /nix/store/*mesa*/lib/libGL.so*"
+    "-e /nix/store/*mesa*/lib/libEGL.so*"
+  ];
+}
+```
+
+The `systemLdConf` overlay (enabled by default in `./bundle`) keeps `ld.so.conf` including `/etc/ld.so.conf`, so the bundled app will search host driver paths after removing the Nix copies. Other `-e` patterns can be added as needed for different drivers.
+
+
 ## Caveats
 
 OpenGL apps not being able to run on non-NixOS systems is a **known problem**, see https://github.com/NixOS/nixpkgs/issues/9415 and https://github.com/ralismark/nix-appimage/issues/5.
-You'll need to use something like [nixGL](https://github.com/guibou/nixGL).
-Addressing this problem outright is _out of scope_ for this project, however PRs to integrate solutions (e.g. nixGL) are welcome.
 
 Additionally, we only make a best-effort attempt to copy in the relevant .desktop files and icons, so they may not be present.
 This doesn't affect the running of bundled apps, but might cause issues with showing up correctly in application launchers (e.g. rofi).

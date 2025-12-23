@@ -12,9 +12,12 @@
   };
 
   outputs = { self, nixpkgs, flake-utils, ... }:
+    let
+      systemLdConfOverlay = import ./overlays/system-ld-so-conf.nix;
+    in
     flake-utils.lib.eachDefaultSystem (system:
       let
-        pkgs = (import nixpkgs { inherit system; }).pkgsStatic;
+        pkgs = (import nixpkgs { inherit system; overlays = [ systemLdConfOverlay ]; }).pkgsStatic;
       in
       rec {
         # runtimes are an executable that mount the squashfs part of the appimage and start AppRun
@@ -61,5 +64,10 @@
               touch $out
             '';
           };
-      });
+      }) // {
+      overlays = {
+        default = systemLdConfOverlay;
+        systemLdConf = systemLdConfOverlay;
+      };
+    };
 }
