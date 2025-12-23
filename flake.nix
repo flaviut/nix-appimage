@@ -29,23 +29,6 @@
           userns-chroot = pkgs.callPackage ./appruns/userns-chroot { };
         };
 
-        packages.ldso-ldpath = hostPkgs.stdenv.mkDerivation rec {
-          pname = "ldso-ldpath";
-          version = "0.1.0";
-          src = ./ldso-ldpath;
-
-          nativeBuildInputs = [ hostPkgs.zig.hook ];
-
-          zigBuildFlags = [
-            "-Doptimize=ReleaseSmall"
-            "--cache-dir" "$TMPDIR/zig-cache"
-            "--global-cache-dir" "$TMPDIR/zig-global-cache"
-          ];
-          zigCheckFlags = zigBuildFlags;
-
-          meta.mainProgram = "ldso-ldpath";
-        };
-
         lib.mkAppImage = pkgs.callPackage ./mkAppImage.nix {
           mkappimage-runtime = packages.appimage-runtimes.appimage-type2-runtime;
           mkappimage-apprun = packages.appimage-appruns.userns-chroot;
@@ -78,7 +61,6 @@
               (! ldd ${hello-appimage} 2>&1) | grep "not a dynamic executable"
               touch $out
             '';
-            ldso-ldpath = packages.ldso-ldpath;
           };
       });
 }
