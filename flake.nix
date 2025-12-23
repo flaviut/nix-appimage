@@ -15,6 +15,7 @@
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = (import nixpkgs { inherit system; }).pkgsStatic;
+        hostPkgs = import nixpkgs { inherit system; };
       in
       rec {
         # runtimes are an executable that mount the squashfs part of the appimage and start AppRun
@@ -26,6 +27,23 @@
         # appruns contain an AppRun executable that does setup and launches entrypoint
         packages.appimage-appruns = {
           userns-chroot = pkgs.callPackage ./appruns/userns-chroot { };
+        };
+
+        packages.ldso-ldpath = hostPkgs.stdenv.mkDerivation rec {
+          pname = "ldso-ldpath";
+          version = "0.1.0";
+          src = ./ldso-ldpath;
+
+          nativeBuildInputs = [ hostPkgs.zig.hook ];
+
+          zigBuildFlags = [
+            "-Doptimize=ReleaseSmall"
+            "--cache-dir" "$TMPDIR/zig-cache"
+            "--global-cache-dir" "$TMPDIR/zig-global-cache"
+          ];
+          zigCheckFlags = zigBuildFlags;
+
+          meta.mainProgram = "ldso-ldpath";
         };
 
         lib.mkAppImage = pkgs.callPackage ./mkAppImage.nix {
@@ -60,6 +78,7 @@
               (! ldd ${hello-appimage} 2>&1) | grep "not a dynamic executable"
               touch $out
             '';
+            ldso-ldpath = packages.ldso-ldpath;
           };
       });
 }
